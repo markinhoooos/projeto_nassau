@@ -1,0 +1,489 @@
+*&---------------------------------------------------------------------*
+*& Report  ZTESTEAMBIENTE
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT ztesteambiente.
+
+
+**********************************************************************
+* DEFINIÇÃO DE CLASSES
+**********************************************************************
+CLASS lcl_nfe_busca_cce DEFINITION.
+
+  PUBLIC SECTION.
+
+*&---------------------------------------------------------------------*
+*& Types                                                               *
+*&---------------------------------------------------------------------*
+    TYPES:
+      BEGIN OF ty_j1bnfe_act                          ,
+       docnum TYPE j_1bnfe_active-docnum              ,
+       stcd1  TYPE j_1bnfe_active-stcd1               ,
+       bukrs  TYPE j_1bnfe_active-bukrs               ,
+      END   OF ty_j1bnfe_act                          .
+
+    TYPES:
+      BEGIN OF ty_kna1                                ,
+       adrnr TYPE kna1-adrnr                          ,
+      END   OF ty_kna1                                .
+
+    TYPES:
+      BEGIN OF ty_adr6                                ,
+       smtp_addr TYPE adr6-smtp_addr                  ,
+      END   OF ty_adr6                                .
+
+    TYPES:
+      BEGIN OF ty_1bn_vent                            ,
+       docnum    TYPE j_1bnfe_event-docnum            ,
+       seqnum    TYPE j_1bnfe_event-seqnum            ,
+       ext_event TYPE j_1bnfe_event-ext_event         ,
+      END   OF ty_1bn_vent                            .
+
+    TYPES:
+      BEGIN OF ty_j_1bnfe_cce                         ,
+       docnum  TYPE j_1bnfe_cce-docnum                ,
+       seqmun  TYPE j_1bnfe_cce-seqnum                ,
+       text    TYPE j_1bnfe_cce-text                  ,
+      END   OF ty_j_1bnfe_cce                         .
+
+    TYPES:
+      BEGIN OF ty_output                              ,
+       credat     TYPE j_1bnfdoc-credat               ,   "date
+       cretim     TYPE j_1bnfdoc-cretim               ,   "hour
+       nfenum     TYPE j_1bnfdoc-nfenum               ,   "NF-e
+       authcod    TYPE j_1bnfdoc-authcod              ,   "aut. protocol of use
+       xmlvers    TYPE j_1bnfdoc-xmlvers              ,   "version xlm
+       regio      TYPE j_1bnfdoc-regio                ,   "regio / Orgao
+       cgc        TYPE j_1bnfdoc-cgc                  ,   "code CNPJ / CPF
+       stcd1      TYPE j_1bnfe_active-stcd1           ,   "CNPJ issuer
+       ext_event  TYPE j_1bnfe_event-ext_event        ,   "code event
+       smtp_addr  TYPE adr6-smtp_addr                 ,   "email
+       acckey     TYPE j_1b_nfe_screen_fields-acckey  ,   "44 position passkey
+       seqnum     TYPE j_1bnfe_event-seqnum           ,   "Internal sequential number for event
+       text       TYPE j_1bnfe_cce-text               ,   "NF-e event: text string
+      END   OF ty_output                              .
+
+
+*&---------------------------------------------------------------------*
+*& inter table                                                         *
+*&---------------------------------------------------------------------*
+    DATA: lt_output         TYPE TABLE OF ty_output            ,
+          lt_j_1bnfdoc      TYPE TABLE OF j_1bnfdoc            ,
+          lt_kna1           TYPE TABLE OF ty_kna1              ,
+          lt_1bn_vent       TYPE TABLE OF ty_1bn_vent          ,
+          lt_1bnfe_cce      TYPE TABLE OF ty_j_1bnfe_cce       ,
+          lt_adr6           TYPE TABLE OF ty_adr6              ,
+          lt_j1bnfe_active  TYPE TABLE OF ty_j1bnfe_act        .
+    DATA: lt_value        TYPE        salv_t_row.
+
+*&---------------------------------------------------------------------*
+*& workarea                                                            *
+*&---------------------------------------------------------------------*
+    DATA: wa_output         TYPE ty_output             ,
+          wa_j_1bnfdoc      TYPE j_1bnfdoc             ,
+          wa_1bn_vent       TYPE ty_1bn_vent           ,
+          wa_1bnfe_cce      TYPE ty_j_1bnfe_cce        ,
+          wa_acckey         TYPE j_1b_nfe_access_key   ,
+          wa_adr6           TYPE ty_adr6               ,
+          wa_j1bnfe_active  TYPE ty_j1bnfe_act         ,
+          it_tline          TYPE tline_t               .
+    DATA: wa_value        TYPE        salv_t_row.
+
+*&---------------------------------------------------------------------*
+*& Type ref to                                                         *
+*&---------------------------------------------------------------------*
+    DATA: o_sel TYPE REF TO cl_salv_selections.
+
+
+*&---------------------------------------------------------------------*
+*& variaveis                                                           *
+*&---------------------------------------------------------------------*
+    DATA: lv_name    TYPE rs38l_fnam                     ,
+          lv_nfe_key TYPE j_1b_nfe_screen_fields-acckey  ,
+          lv_img     TYPE char20                         .
+    DATA: vl_lenght TYPE i.
+
+
+
+*&---------------------------------------------------------------------*
+*& constants                                                           *
+*&---------------------------------------------------------------------*
+    CONSTANTS: c_ev_cce TYPE j_1bnfe_event-int_event VALUE 'EV_CCE'  ,
+               c_lgalrt TYPE char20 VALUE 'LOGO_ALERT'               ,
+               c_flag_x TYPE c VALUE 'X'                             .
+
+
+
+    METHODS:
+      select_nfe_cce.
+
+
+ENDCLASS.                    "lcl_nfe_busca_cce DEFINITION
+
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_event_handler DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event_handler DEFINITION INHERITING FROM lcl_nfe_busca_cce.
+  PUBLIC SECTION.
+
+    METHODS: functions FOR EVENT added_function
+  OF cl_salv_events
+  IMPORTING e_salv_function.
+
+ENDCLASS.                    "lcl_event_handler DEFINITION
+
+
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_show_text_event_cce DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_show_text_event_cce DEFINITION INHERITING FROM lcl_nfe_busca_cce.
+
+
+
+
+  PUBLIC SECTION.
+
+    DATA: o_table         TYPE REF TO cl_salv_table.
+    DATA: r_event_handler TYPE REF TO lcl_event_handler.
+    DATA: o_events        TYPE REF TO cl_salv_events_table.
+
+
+    CONSTANTS: c_report TYPE sy-repid VALUE 'ZRFIPRINTCCE'.
+    CONSTANTS: c_pfstatus TYPE sypfkey VALUE 'STATUS_1000'.
+
+    METHODS:
+    show_txt_event,
+    show_smartforms.
+
+
+
+ENDCLASS.                    "lcl_show_text_event_cce DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_data_process DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_data_process DEFINITION INHERITING FROM lcl_nfe_busca_cce.
+
+  PUBLIC SECTION.
+
+    METHODS:
+    data_process.
+
+ENDCLASS.                    "lcl_data_process DEFINITION
+
+
+
+*&---------------------------------------------------------------------*
+*& Screen initial                                                      *
+*&---------------------------------------------------------------------*
+PARAMETERS: p_docnu TYPE j_1bnfdoc-docnum OBLIGATORY  ,
+            p_bukrs TYPE j_1bnfdoc-bukrs  OBLIGATORY  .
+
+
+*&---------------------------------------------------------------------*
+*& program start                                                       *
+*&---------------------------------------------------------------------*
+START-OF-SELECTION.
+
+
+
+  DATA: lo_nfe_busca_cce TYPE REF TO lcl_nfe_busca_cce.
+  CREATE OBJECT lo_nfe_busca_cce.
+
+  lo_nfe_busca_cce->select_nfe_cce( ).
+
+  DATA: lo_show_text_event_cce TYPE REF TO lcl_show_text_event_cce.
+  CREATE OBJECT lo_show_text_event_cce.
+  lo_show_text_event_cce->show_txt_event( ).
+
+  lo_show_text_event_cce->show_smartforms( ).
+
+
+**********************************************************************
+* IMPLEMENTAÇÃO DE CLASSES
+**********************************************************************
+CLASS lcl_nfe_busca_cce IMPLEMENTATION.
+
+
+  METHOD select_nfe_cce.
+.
+
+    SELECT *
+      FROM j_1bnfdoc
+      INTO TABLE lt_j_1bnfdoc
+         WHERE docnum EQ p_docnu
+          AND  bukrs  EQ p_bukrs.
+    SORT lt_j_1bnfdoc BY docnum.
+
+    IF sy-subrc IS INITIAL.
+
+      SELECT docnum
+             stcd1
+             bukrs
+       FROM j_1bnfe_active
+        INTO TABLE lt_j1bnfe_active
+        FOR ALL ENTRIES IN lt_j_1bnfdoc
+        WHERE docnum EQ lt_j_1bnfdoc-docnum
+         AND  bukrs  EQ lt_j_1bnfdoc-bukrs.
+      SORT lt_j1bnfe_active BY docnum.
+
+      IF sy-subrc IS INITIAL.
+
+        SELECT docnum
+               seqnum
+               ext_event
+          FROM j_1bnfe_event
+          INTO TABLE lt_1bn_vent
+          FOR ALL ENTRIES IN lt_j_1bnfdoc
+            WHERE docnum    EQ lt_j_1bnfdoc-docnum
+              AND int_event EQ c_ev_cce.
+        SORT lt_1bn_vent BY docnum.
+
+        IF sy-subrc IS INITIAL.
+
+          SELECT docnum
+                 seqnum
+                 text
+            FROM j_1bnfe_cce
+            INTO TABLE lt_1bnfe_cce
+            FOR ALL ENTRIES IN lt_j_1bnfdoc
+            WHERE docnum EQ lt_j_1bnfdoc-docnum
+            AND int_event EQ c_ev_cce.
+          SORT lt_1bnfe_cce BY docnum.
+
+          IF sy-subrc IS INITIAL.
+
+            SELECT adrnr
+              FROM kna1
+              INTO TABLE lt_kna1
+              FOR ALL ENTRIES IN lt_j_1bnfdoc
+                WHERE kunnr EQ lt_j_1bnfdoc-parid.
+
+            IF sy-subrc IS INITIAL.
+
+              SELECT smtp_addr
+                FROM adr6
+                INTO TABLE lt_adr6
+                FOR ALL ENTRIES IN lt_kna1
+                WHERE addrnumber EQ lt_kna1-adrnr
+                 AND  home_flag  EQ c_flag_x.
+              SORT lt_adr6 BY smtp_addr.
+
+            ENDIF.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ELSE.
+      MESSAGE e001(zficce).
+    ENDIF.
+
+
+
+
+
+  ENDMETHOD.                    "select_nfe_cce
+
+ENDCLASS.                    "lcl_nfe_busca_cce IMPLEMENTATION
+
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_event_handler IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event_handler IMPLEMENTATION.
+*  METHOD on_user_command.
+  METHOD: functions.
+    CASE e_salv_function.
+      WHEN: '&ECEC' OR '&EXEC'.
+        DATA: lt_value        TYPE        salv_t_row.
+        CALL METHOD o_sel->get_selected_rows
+          RECEIVING
+            value = lt_value.
+
+        IF lt_value IS INITIAL.
+          MESSAGE e002(zficce).
+        ELSEIF lines( lt_value ) > 1.
+          MESSAGE e003(zficce).
+        ELSEIF lt_value IS NOT INITIAL.
+          data: lo_lcl_data_process TYPE REF TO lcl_data_process.
+          CREATE OBJECT lo_lcl_data_process.
+          lo_lcl_data_process->data_process( ).
+        ENDIF.
+      WHEN: '&F03' OR '&F15' OR '%F12'.
+        SET SCREEN 0.
+        LEAVE SCREEN.
+      WHEN OTHERS.
+
+
+    ENDCASE .
+  ENDMETHOD.                    "on_user_command
+ENDCLASS.                    "lcl_event_handler IMPLEMENTATION&lt;/font&gt;
+
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_show_text_event_cce IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS  lcl_show_text_event_cce IMPLEMENTATION.
+
+  METHOD show_txt_event.
+
+    CALL METHOD cl_salv_table=>factory
+      IMPORTING
+        r_salv_table = o_table
+      CHANGING
+        t_table      = lt_1bnfe_cce.
+
+
+* Set event handling
+    o_events = o_table->get_event( ).
+    CREATE OBJECT r_event_handler.
+    SET HANDLER r_event_handler->functions FOR o_events.
+
+    o_table->set_screen_status( pfstatus      = c_pfstatus
+                                  report        = c_report
+                                  set_functions = o_table->c_functions_all ).
+
+
+    o_sel = o_table->get_selections( ).
+    o_sel->set_selection_mode( if_salv_c_selection_mode=>row_column ).
+
+
+* show o ALV
+    o_table->display( ).
+
+
+  ENDMETHOD.                    "show_txt_event
+
+  METHOD show_smartforms.
+
+    DATA: wa_cparam TYPE  ssfctrlop.
+
+*function to call dynamic name from smartforms
+    CALL FUNCTION 'SSF_FUNCTION_MODULE_NAME'
+      EXPORTING
+        formname = 'ZSFRELCCE_1'
+      IMPORTING
+        fm_name  = lv_name.
+
+    IF NOT lv_name IS INITIAL.
+
+*disable printer pop-up
+      wa_cparam-preview = 'X'.
+      wa_cparam-no_dialog = 'X'.
+      wa_cparam-device = 'PRINTER'.
+
+*function that calls smartforms
+      CALL FUNCTION lv_name
+        EXPORTING
+          control_parameters = wa_cparam
+          p_img              = lv_img
+        TABLES
+          lt_zstprintcce     = lt_output.
+
+    ENDIF.
+
+
+
+  ENDMETHOD.                    "show_smartforms
+
+ENDCLASS.                    "lcl_show_text_event_cce IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_data_process IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_data_process IMPLEMENTATION.
+
+  METHOD data_process.
+
+    DATA: wa_values LIKE LINE OF lt_value.
+
+    IF lt_1bnfe_cce IS INITIAL.
+*    PERFORM f_data_select.
+    ENDIF.
+
+    LOOP AT lt_value INTO wa_values.
+      READ TABLE lt_1bnfe_cce INTO wa_1bnfe_cce INDEX wa_values.
+      IF sy-subrc IS INITIAL.
+        READ TABLE lt_j_1bnfdoc INTO wa_j_1bnfdoc WITH KEY docnum = wa_1bnfe_cce-docnum.
+        IF sy-subrc IS INITIAL.
+          wa_output-credat     = wa_j_1bnfdoc-credat.
+          wa_output-cretim     = wa_j_1bnfdoc-cretim.
+          wa_output-nfenum     = wa_j_1bnfdoc-nfenum.
+          wa_output-authcod    = wa_j_1bnfdoc-authcod.
+          wa_output-xmlvers    = wa_j_1bnfdoc-xmlvers.
+          wa_output-regio      = wa_j_1bnfdoc-regio.
+          wa_output-cgc        = wa_j_1bnfdoc-cgc.
+
+          READ TABLE lt_j1bnfe_active INTO wa_j1bnfe_active WITH KEY docnum = wa_j_1bnfdoc-docnum
+                                                                     bukrs  = wa_j_1bnfdoc-bukrs.
+          IF sy-subrc IS INITIAL.
+            wa_output-stcd1 = wa_j1bnfe_active-stcd1.
+          ENDIF.
+
+
+          READ TABLE lt_1bn_vent INTO wa_1bn_vent WITH KEY docnum = wa_j_1bnfdoc-docnum.
+          IF sy-subrc IS INITIAL.
+            wa_output-ext_event  = wa_1bn_vent-ext_event.
+          ENDIF.
+          LOOP AT lt_adr6 INTO wa_adr6 .
+            wa_output-smtp_addr   = wa_adr6-smtp_addr .
+          ENDLOOP.
+        ENDIF.
+
+        "function that creates NFe Access Key
+        CALL FUNCTION 'J_1B_NFE_FILL_MONITOR_TABLE'
+          EXPORTING
+            i_doc    = wa_j_1bnfdoc
+            i_docnum = wa_j_1bnfdoc-docnum
+          IMPORTING
+            e_acckey = wa_acckey.
+
+        lv_nfe_key       = wa_acckey.
+        wa_output-acckey = lv_nfe_key.
+        wa_output-seqnum = wa_values.
+        wa_output-text   = wa_1bnfe_cce-text.
+
+        APPEND wa_output TO lt_output.
+        CLEAR: wa_j_1bnfdoc,wa_j1bnfe_active, wa_1bn_vent, wa_acckey, wa_adr6, wa_1bnfe_cce.
+      ENDIF.
+
+    ENDLOOP.
+
+    REFRESH: lt_j_1bnfdoc[] ,lt_j1bnfe_active[], lt_1bn_vent[] , lt_1bnfe_cce[], lt_value[], lt_adr6[].
+    CLEAR: lv_nfe_key.
+
+    IF NOT lt_output IS INITIAL.
+
+    DATA: lO_show_text_event_cce TYPE REF TO lcl_show_text_event_cce.
+      CREATE OBJECT lo_show_text_event_cce.
+    lo_show_text_event_cce->show_smartforms( ).
+    ELSE.
+      MESSAGE e001(zfi).
+    ENDIF.
+
+
+
+  ENDMETHOD.                    "data_process
+
+ENDCLASS.                    "lcl_data_process IMPLEMENTATION
